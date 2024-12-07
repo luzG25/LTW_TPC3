@@ -1,38 +1,58 @@
-import React, { useState } from "react";
+import React, { useReducer, useState } from "react";
 import "./App.css";
 
+//objeto para armazenar as strings de todas
+//as ações possiveis
+const ACTIONS = {
+  ADD_TASK: "add_task",
+  TOGGLE_TASK: "toogle_task",
+  REMOVE_TASK: "remove_task",
+  SET_FILTER: "setfilter",
+};
+
+//a funcao reducer contém toda a logica para
+//modificar o nosso estado
+function reducer(tasks, action) {
+  switch (action.type) {
+    case ACTIONS.ADD_TASK:
+      return [
+        ...tasks,
+        {
+          id: Date.now(),
+          name: action.payload.name.trim(),
+          completed: false,
+        },
+      ];
+
+    case ACTIONS.TOGGLE_TASK:
+      return tasks.map((task) =>
+        task.id === action.payload.id
+          ? { ...task, completed: !task.completed }
+          : task
+      );
+
+    case ACTIONS.REMOVE_TASK:
+      return tasks.filter((task) => task.id !== action.payload.id);
+
+    default:
+      return tasks;
+  }
+}
+
 function App() {
-  const [tasks, setTasks] = useState([
+  //o useReducer é semelhante ao useState
+  //rederiza novamente quando o estado muda
+  //A unica diferença relevante é que passa uma funcao redutora
+  const [tasks, dispatch] = useReducer(reducer, [
     { id: 1, name: "Aprender useState", completed: false },
     { id: 2, name: "Criar exemplo prático", completed: true },
   ]);
+
   const [filter, setFilter] = useState("all"); // Opções: "all", "pending", "completed"
   const [newTaskName, setNewTaskName] = useState("");
 
-  const addTask = () => {
-    if (newTaskName.trim()) {
-      const newTask = {
-        id: Date.now(),
-        name: newTaskName,
-        completed: false,
-      };
-      setTasks([...tasks, newTask]);
-      setNewTaskName("");
-    }
-  };
-
-  const toggleTask = (id) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
-
-  const removeTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
-
+  //nao é possivel refratorar os filtros
+  //porque os filtros nao alteram diretamente o array
   const filteredTasks = tasks.filter((task) => {
     if (filter === "pending") return !task.completed;
     if (filter === "completed") return task.completed;
@@ -49,7 +69,17 @@ function App() {
           onChange={(e) => setNewTaskName(e.target.value)}
           placeholder="Nova tarefa"
         />
-        <button onClick={addTask}>Adicionar</button>
+        <button
+          onClick={() => {
+            dispatch({
+              type: ACTIONS.ADD_TASK,
+              payload: { name: newTaskName },
+            });
+            setNewTaskName("");
+          }}
+        >
+          Adicionar
+        </button>
       </div>
       <div className="comandos">
         <button onClick={() => setFilter("all")}>Todos</button>
@@ -66,10 +96,26 @@ function App() {
             >
               {task.name}
             </span>
-            <button onClick={() => toggleTask(task.id)}>
+            <button
+              onClick={() => {
+                dispatch({
+                  type: ACTIONS.TOGGLE_TASK,
+                  payload: { id: task.id },
+                });
+              }}
+            >
               {task.completed ? "Desfazer" : "Concluir"}
             </button>
-            <button onClick={() => removeTask(task.id)}>Remover</button>
+            <button
+              onClick={() => {
+                dispatch({
+                  type: ACTIONS.REMOVE_TASK,
+                  payload: { id: task.id },
+                });
+              }}
+            >
+              Remover
+            </button>
           </li>
         ))}
       </ul>
